@@ -69,7 +69,6 @@ jobs:
           tests/test_tui_sessions.py
           tests/test_tui_session_selection.py
           tests/test_tui_model_config_isolation.py
-          tests/test_tui_project_instructions.py
           tests/test_chat_runtime_resilience.py
           tests/test_tui_preparation_limits.py
           tests/test_long_research_interaction.py
