@@ -20,6 +20,9 @@ def build_stage_llm(stage: StageConfig):
 
 
 class PoolRuntimeFactory:
+    def _prepare_options(self, options, conversation):
+        return options
+
     def _tools(self):
         from inquirycraft.tools import default_tools
 
@@ -56,6 +59,8 @@ class PoolRuntimeFactory:
         store = (
             JsonlConversationStore(options.session_log) if options.session_log else None
         )
+        conversation = store.load() if store else Conversation()
+        options = self._prepare_options(options, conversation)
         monitor = ChatMonitor(
             options,
             client.backend,
@@ -93,7 +98,7 @@ class PoolRuntimeFactory:
                 options=replace(options, model=models[0]),
                 tools=self._tools() if tools is None else tools,
                 event_sink=event_sink,
-                conversation=store.load() if store else Conversation(),
+                conversation=conversation,
                 conversation_store=store,
             )
         )
@@ -110,6 +115,30 @@ class TuiShellTool(ShellTool):
 
 
 class TuiPoolRuntimeFactory(PoolRuntimeFactory):
+    def _prepare_options(self, options, conversation):
+        from scienceflow.research.state.knowledge.prompt.project_instructions import (
+            load_project_instructions,
+            project_instruction_prompt,
+        )
+
+        # Existing sessions retain their persisted system prompt and checkpoints.
+        if conversation.messages:
+            return options
+        try:
+            instructions = load_project_instructions(options.workspace)
+        except (OSError, UnicodeError, ValueError) as exc:
+            raise click.ClickException(f"Cannot load project instructions: {exc}") from exc
+        prompt = project_instruction_prompt(instructions)
+        if not prompt:
+            return options
+        for instruction in instructions:
+            click.echo(
+                f"Project instructions loaded: {instruction.path} "
+                f"(sha256={instruction.digest[:12]})",
+                err=True,
+            )
+        return replace(options, system_prompt="\n\n".join((options.system_prompt, prompt)))
+
     def _tools(self):
         from inquirycraft.tools import ReadTextTool, ToolCollection, WriteTextTool
 
