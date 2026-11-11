@@ -200,4 +200,3 @@ async def author_task_instructions(owner, host, request, *, facts, current=None,
             if not attempt:
                 await host.notice("Task instruction generation needs correction. Retrying once.")
     raise ValueError(f"Task instruction generation failed after one correction: {error}")
-
