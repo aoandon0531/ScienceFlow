@@ -419,13 +419,17 @@ async def test_natural_location_selection_runs_in_background_and_continues(
 @pytest.mark.asyncio
 async def test_cli_waits_for_location_then_preparation(tmp_path, monkeypatch):
     from scienceflow.interfaces.cli.commands.run.control import guided
-    from scienceflow.interfaces.ui import model_config
+    from scienceflow.interfaces.ui import instruction_author, model_config
     from scienceflow.research.onboarding import OnboardingState, write_onboarding_files
 
     monkeypatch.setattr(model_config, "configure_draft_models", lambda *a: None)
     monkeypatch.setattr(
         preparation, "resolve_natural_location", AsyncMock(return_value="../external")
     )
+    author = AsyncMock(return_value=instruction_author.AuthoredInstructions(
+        "new", "Circle packing", "# Circle packing\nFollow the supplied task requirements."
+    ))
+    monkeypatch.setattr(instruction_author, "author_task_instructions", author)
     launched = Mock(return_value={"run_id": "synthetic"})
     monkeypatch.setattr(guided, "start_run", launched)
 
@@ -443,6 +447,11 @@ async def test_cli_waits_for_location_then_preparation(tmp_path, monkeypatch):
     location = launched.call_args.kwargs["draft"].execution_location
     assert Path(location["task_workspace"]).parent == tmp_path / "external"
     assert location["management_workspace"] == str(tmp_path / "chat")
+
+    author.assert_awaited_once()
+    owner = author.await_args.args[0]
+    assert str(owner.task_workspace) == location["task_workspace"]
+    assert list(owner.task_workspace.glob(".scienceflow/task-instructions/*/AGENTS.md"))
 
 
 def test_web_uses_indexed_external_task_root_and_does_not_import_other_workspaces(
