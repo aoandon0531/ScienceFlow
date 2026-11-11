@@ -129,7 +129,7 @@ class TuiPoolRuntimeFactory(PoolRuntimeFactory):
         except (OSError, UnicodeError, ValueError) as exc:
             raise click.ClickException(f"Cannot load project instructions: {exc}") from exc
         prompt = project_instruction_prompt(instructions)
-        if not prompt:
+        if not prompt or prompt in options.system_prompt:
             return options
         for instruction in instructions:
             click.echo(

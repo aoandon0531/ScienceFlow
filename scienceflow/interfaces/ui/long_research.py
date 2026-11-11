@@ -538,6 +538,12 @@ class LongResearchInteraction:
             await host.notice(self._preparation.question)
             return True
         update = self.session.answer(text)
+        if update.action in {"answered", "preflight"}:
+            try:
+                await self._preparation.update_instructions(host, self.session)
+            except (OSError, ValueError) as exc:
+                await host.notice(f"Cannot update task instructions: {exc}")
+                return True
         if update.action == "preflight":
             await self._preflight(host)
         elif update.action == "run":
@@ -665,6 +671,7 @@ class LongResearchInteraction:
                 # Automatic defaults choose one task-wide model. All workers
                 # keep that model name while its endpoint pool handles failover.
                 self.session.draft.code_models = self.session.draft.code_models[:1]
+            await self._preparation.update_instructions(host, self.session)
         except asyncio.CancelledError:
             self._task_workspace = None
             host.set_host_status("")

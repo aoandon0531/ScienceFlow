@@ -35,6 +35,21 @@ class ResearchPreparation:
         self.validated_command = ""
         self.validation_samples = {}
 
+    async def update_instructions(self, host, session):
+        from scienceflow.research.onboarding.support.task_instructions import (
+            write_task_instructions,
+        )
+
+        snapshot = await asyncio.to_thread(
+            write_task_instructions, session.draft, self.owner.task_workspace
+        )
+        if snapshot.changed:
+            await host.notice(
+                f"Task instructions updated: {snapshot.path} "
+                f"(sha256={snapshot.digest[:12]})"
+            )
+        return snapshot
+
     async def locate(self, host, constraints):
         """Keep the editor responsive while resolving a natural-language location."""
         await host.notice("Checking task execution location… /cancel returns to chat.")
@@ -126,6 +141,7 @@ class ResearchPreparation:
                 reserved_cpu_ids=reserved_cpu_ids,
             )
             session.revise(fields)
+            await self.update_instructions(host, session)
             self.owner.files = self.owner.preflight = None
             self.validation_error = ""
             self.question = registered_missing_prompt(session.draft)
@@ -233,6 +249,7 @@ class ResearchPreparation:
                 self.validation_samples = samples
                 self.validated_command = candidate.artifact_command
             session.revise(fields)
+            await self.update_instructions(host, session)
             if (
                 question
                 and session.ready_for_preflight

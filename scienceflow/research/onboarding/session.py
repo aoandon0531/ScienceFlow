@@ -10,6 +10,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+from uuid import uuid4
 
 from scienceflow.research.onboarding.support.answers import (
     detach_conversation,
@@ -70,6 +71,7 @@ class LongResearchDraft:
     task_root: str = ""
     description_sources: tuple[str, ...] = ()
     discovered_files: tuple[str, ...] = ()
+    instruction_id: str = field(default_factory=lambda: uuid4().hex)
 
 
 @dataclass(frozen=True, slots=True)
