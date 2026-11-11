@@ -96,13 +96,13 @@ class LnrConfig:
     metric_validity_adjudicator_timeout_sec: float = 60.0
     clean_repl_mode: bool = True
     metric_validation_leakage_guard_enabled: bool = True
-    lnr_skill_tool_enabled: bool = False
-    lnr_skill_tool_mode: str = "category_only"
+    lnr_skill_tool_enabled: bool = True
+    lnr_skill_tool_mode: str = "all"
     lnr_skill_category_source: str = "tasks/ml/mlebench/competition_categories.json"
     lnr_skill_category_label_field: str = "category_label"
     lnr_skill_auto_read: bool = False
     lnr_skill_auto_read_max_chars: int = 6000
-    lnr_skill_visible_max: int = 1
+    lnr_skill_visible_max: int = 0
     lnr_skill_allow_generic_wildcard: bool = False
     snapshot_dirname: str = ".snapshots"
     archive_dirname: str = "snapshots/archives"

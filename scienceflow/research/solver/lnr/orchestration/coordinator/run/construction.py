@@ -146,7 +146,7 @@ def __init__(
     self.skill_task_category = ""
     self.skill_allow_names: tuple[str, ...] = ()
     self.skill_tool_mode = str(
-        getattr(self.lhr, "lnr_skill_tool_mode", "category_only") or "category_only"
+        getattr(self.lhr, "lnr_skill_tool_mode", "all") or "all"
     )
     self.skill_allow_generic_wildcard = bool(
         getattr(self.lhr, "lnr_skill_allow_generic_wildcard", False)
@@ -269,13 +269,13 @@ def _configure_lnr_category_skill(self) -> None:
     self.skill_task_category = ""
     self.skill_allow_names = ()
     self.skill_category_status = "disabled"
-    if not bool(getattr(self.lhr, "lnr_skill_tool_enabled", False)):
+    if not bool(getattr(self.lhr, "lnr_skill_tool_enabled", True)):
         return
     mode = str(
-        getattr(self.lhr, "lnr_skill_tool_mode", "category_only") or "category_only"
+        getattr(self.lhr, "lnr_skill_tool_mode", "all") or "all"
     ).strip()
-    self.skill_tool_mode = mode or "category_only"
-    if self.skill_tool_mode != "category_only":
+    self.skill_tool_mode = mode
+    if mode not in {"all", "category_only"}:
         self.skill_category_status = "unsupported_mode"
         return
     self.skill_allow_generic_wildcard = bool(
@@ -284,18 +284,19 @@ def _configure_lnr_category_skill(self) -> None:
     self.skill_visible_max = max(
         1, int(getattr(self.lhr, "lnr_skill_visible_max", 1) or 1)
     )
-    label_field = str(
-        getattr(self.lhr, "lnr_skill_category_label_field", "category_label")
-        or "category_label"
-    ).strip()
-    if label_field != "category_label":
-        self.skill_category_status = "unsupported_category_label_field"
-        return
-    label = self._load_lnr_task_category_label()
-    self.skill_task_category = label
-    if not label:
-        self.skill_category_status = "skill_category_missing"
-        return
+    if mode == "category_only":
+        label_field = str(
+            getattr(self.lhr, "lnr_skill_category_label_field", "category_label")
+            or "category_label"
+        ).strip()
+        if label_field != "category_label":
+            self.skill_category_status = "unsupported_category_label_field"
+            return
+        label = self._load_lnr_task_category_label()
+        self.skill_task_category = label
+        if not label:
+            self.skill_category_status = "skill_category_missing"
+            return
     registry = getattr(self.orchestrator, "skill_registry", None)
     if registry is None:
         registry = SkillRegistry()
@@ -304,6 +305,15 @@ def _configure_lnr_category_skill(self) -> None:
         except Exception:
             self.skill_category_status = "skill_registry_load_failed"
             return
+    if mode == "all":
+        self.skill_registry = registry
+        self.skill_visible_max = max(
+            0, int(getattr(self.lhr, "lnr_skill_visible_max", 0) or 0)
+        )
+        self.skill_category_status = (
+            "enabled" if registry.get_all() else "skill_library_empty"
+        )
+        return
     candidates = registry.get_by_category_label(label)
     if not candidates:
         self.skill_category_status = "skill_category_unmapped"
@@ -447,6 +457,19 @@ def _lnr_auto_read_skill_block(self) -> str:
 
 
 def _lnr_skill_hint(self) -> str:
+    if self.skill_registry is not None and self.skill_tool_mode == "all":
+        from scienceflow.research.state.knowledge.skills.runtime.tool import SkillTool
+
+        tool = SkillTool(registry=self.skill_registry, visible_max=self.skill_visible_max)
+        skills = tool._list_candidates(category="", tag="")
+        if not skills:
+            return ""
+        return (
+            "Available skills (metadata only). Select skills relevant to the current task "
+            "and use the skill tool with action=read and name=<name> before applying them. "
+            "Use action=list to browse. Reading a skill does not execute it.\n"
+            + "\n".join(tool._format_one_line(skill) for skill in skills)
+        )
     if self.skill_registry is None or not self.skill_allow_names:
         return ""
     if any(name.startswith("task_") for name in self.skill_allow_names):

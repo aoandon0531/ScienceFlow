@@ -1,11 +1,13 @@
-# Optional skill/category hint defaults.
+# Load skill metadata automatically; read full guidance on demand.
+# Set lnr_skill_tool_enabled=false to disable, or mode=category_only for legacy mapping.
+# visible_max=0 lists all skills in all mode.
 
 lnr:
-  lnr_skill_tool_enabled: false
-  lnr_skill_tool_mode: category_only
+  lnr_skill_tool_enabled: true
+  lnr_skill_tool_mode: all
   lnr_skill_category_source: tasks/ml/mlebench/competition_categories.json
   lnr_skill_category_label_field: category_label
   lnr_skill_auto_read: false
   lnr_skill_auto_read_max_chars: 6000
-  lnr_skill_visible_max: 1
+  lnr_skill_visible_max: 0
   lnr_skill_allow_generic_wildcard: false
