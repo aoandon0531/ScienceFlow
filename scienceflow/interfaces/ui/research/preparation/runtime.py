@@ -1,6 +1,5 @@
 """Create caller-owned preparation runtimes without touching chat sessions."""
 
-import asyncio
 import json
 from dataclasses import replace
 from inspect import signature
@@ -75,14 +74,12 @@ async def run_preparation_task(
         operation_log=None,
     )
     session = getattr(owner, "session", None)
-    if session is not None:
-        from scienceflow.research.onboarding.support.task_instructions import (
-            write_task_instructions,
-        )
-
-        snapshot = await asyncio.to_thread(
-            write_task_instructions, session.draft, owner.task_workspace
-        )
+    preparation = getattr(owner, "_preparation", None)
+    if session is not None and preparation is not None and not tool_free:
+        snapshot = await preparation.update_instructions(host, session)
+    else:
+        snapshot = None
+    if snapshot is not None:
         options = replace(
             options,
             system_prompt=(

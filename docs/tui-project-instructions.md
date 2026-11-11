@@ -14,14 +14,20 @@ Missing or empty files are skipped. Invalid UTF-8, unreadable files, links outsi
 
 ## Task-specific generation
 
-Starting `/long-research TASK` automatically creates instructions in the allocated task workspace at `.scienceflow/task-instructions/<instance-id>/AGENTS.md`. For example, `/long-research leaf-classification` generates instructions from the registered task package before requesting missing dataset and resource settings.
+The local prototype uses the selected model to author complete Markdown instructions for both ordinary TUI tasks and `/long-research` preparation. The author chooses the document structure for the task and its materials.
 
-The generated file records the objective, artifact, metric, compute budget and description sources. Documented task objectives, evaluation requirements, submission formats and implementation constraints are promoted into a task-specific requirements section. The complete task evidence is retained. Unresolved settings are labeled explicitly.
+For ordinary idle chat submissions, a short model call identifies explicit task starts, switches and requirement updates. Continuation questions keep the current task. A new task receives its own instruction file. An update replaces the current task's authored section. The ordinary conversation remains shared.
 
-Accepted preparation changes regenerate the managed block. The TUI reports its path and SHA256 digest. Manual guidance outside the marked block is retained, and content versions are saved under the adjacent `versions/` directory. Each task instance has its own directory, including repeated runs of the same benchmark task.
+For `/long-research`, the author receives task materials and confirmed onboarding facts. Changed facts trigger a new document; unchanged facts reuse the existing version. Referenced local text materials are supplied as bounded raw text, independent of their section structure. Additional workspace text can be read with tools. Missing information must be marked for clarification.
 
-The isolated preparation runtime receives the current instruction content and its digest together. Registered tasks continue to use their package metadata for preparation. Generation follows resolved task facts and does not require an additional model call.
+Instructions are saved at `.scienceflow/task-instructions/<instance-id>/AGENTS.md` under the task workspace. The TUI reports the path and digest. Manual guidance outside host markers is retained, and content versions are kept beside the file. Active task instructions are projected into requests separately from shared factual history, counted against the input budget, and restored from a session-side snapshot after restart.
+
+The host validates intent responses, text size and control markers. For confirmed research facts, the model must include an exact JSON facts block within its Markdown. A failed generation or check is fed back for one correction. A second failure keeps the previous active version and displays the reason. Format and supplied-fact checks are automatic. Task strategies are part of document review.
+
+Ordinary submissions incur an intent-check model call. Task creation and updates additionally call the author. These calls use temperature zero. While authoring is active, finish or cancel it before sending another ordinary request.
 
 Instruction files have a 32768-byte limit. File locking, atomic replacement and a concurrent-edit check protect updates. An invalid managed block produces a diagnostic so the user can repair it.
 
 Automatic learning from execution failures and adoption of updated instructions by running research workers are later research-resource stages.
+
+The prototype targets InquiryCraft 0.9.8. Its runtime adapter overrides the pinned host-message projection hook so active task text participates in both budget checks and request construction without rewriting conversation or compaction checkpoints. Embedded research hosts need to supply a preparation runtime factory for model authoring.

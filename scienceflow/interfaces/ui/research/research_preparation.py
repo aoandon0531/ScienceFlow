@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import replace
+from hashlib import sha256
+import json
 
 from scienceflow.research.onboarding import OnboardingState
 from scienceflow.research.onboarding.support.preparation import (
@@ -34,15 +36,42 @@ class ResearchPreparation:
         self.validation_error = ""
         self.validated_command = ""
         self.validation_samples = {}
+        self._instruction_fingerprint = ""
 
     async def update_instructions(self, host, session):
+        if self.owner.preparation_runtime_factory is None:
+            return None
+        from scienceflow.interfaces.ui.instruction_author import (
+            author_task_instructions,
+            confirmed_task_facts,
+        )
         from scienceflow.research.onboarding.support.task_instructions import (
-            write_task_instructions,
+            read_task_instructions,
+            save_task_instructions,
         )
 
-        snapshot = await asyncio.to_thread(
-            write_task_instructions, session.draft, self.owner.task_workspace
+        facts = confirmed_task_facts(session.draft)
+        fingerprint = sha256(json.dumps(
+            [session.draft.instruction_id, facts, session.draft.task_text], sort_keys=True
+        ).encode()).hexdigest()
+        current = await asyncio.to_thread(
+            read_task_instructions, session.draft.instruction_id, self.owner.task_workspace
         )
+        snapshot = current
+        title = session.draft.exp_id or "Research task"
+        if snapshot is None or fingerprint != self._instruction_fingerprint:
+            authored = await author_task_instructions(
+                self.owner, host, session.draft.task_text, facts=facts, current=current
+            )
+            snapshot = await asyncio.to_thread(
+                save_task_instructions, session.draft.instruction_id,
+                self.owner.task_workspace, authored.markdown,
+            )
+            self._instruction_fingerprint = fingerprint
+            title = authored.title
+        activate = getattr(getattr(host, "runtime", None), "activate_task", None)
+        if callable(activate):
+            activate(snapshot, title)
         if snapshot.changed:
             await host.notice(
                 f"Task instructions updated: {snapshot.path} "
@@ -323,4 +352,5 @@ class ResearchPreparation:
         self.question = ""
         self.validation_error = ""
         self.validated_command = ""
+        self._instruction_fingerprint = ""
         self.validation_samples = {}

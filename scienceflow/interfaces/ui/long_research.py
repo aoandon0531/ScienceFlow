@@ -671,7 +671,6 @@ class LongResearchInteraction:
                 # Automatic defaults choose one task-wide model. All workers
                 # keep that model name while its endpoint pool handles failover.
                 self.session.draft.code_models = self.session.draft.code_models[:1]
-            await self._preparation.update_instructions(host, self.session)
         except asyncio.CancelledError:
             self._task_workspace = None
             host.set_host_status("")

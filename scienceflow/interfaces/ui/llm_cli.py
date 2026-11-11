@@ -20,6 +20,11 @@ def build_stage_llm(stage: StageConfig):
 
 
 class PoolRuntimeFactory:
+    def _runtime_type(self):
+        from inquirycraft.runtime import AgentRuntime
+
+        return AgentRuntime
+
     def _prepare_options(self, options, conversation):
         return options
 
@@ -34,7 +39,6 @@ class PoolRuntimeFactory:
         from inquirycraft.cli.chat_profiles import ProfileStore
         from inquirycraft.llm import SameRoundRetryPolicy
         from inquirycraft.memory import Conversation, JsonlConversationStore
-        from inquirycraft.runtime import AgentRuntime
 
         models = values(options.model)
         keys = values(api_key)
@@ -85,8 +89,9 @@ class PoolRuntimeFactory:
                 api_routing_mode=routing,
             )
         )
+        runtime_type = self._runtime_type()
         return monitor.bind(
-            AgentRuntime(
+            runtime_type(
                 llm=client,
                 llm_retry_policy=SameRoundRetryPolicy(
                     max_attempts=3,
@@ -115,6 +120,11 @@ class TuiShellTool(ShellTool):
 
 
 class TuiPoolRuntimeFactory(PoolRuntimeFactory):
+    def _runtime_type(self):
+        from scienceflow.interfaces.ui.task_context import TaskContextRuntime
+
+        return TaskContextRuntime
+
     def _prepare_options(self, options, conversation):
         from scienceflow.research.state.knowledge.prompt.project_instructions import (
             load_project_instructions,
@@ -122,7 +132,7 @@ class TuiPoolRuntimeFactory(PoolRuntimeFactory):
         )
 
         # Existing sessions retain their persisted system prompt and checkpoints.
-        if conversation.messages:
+        if conversation.messages or options.agent_id == "instruction-author":
             return options
         try:
             instructions = load_project_instructions(options.workspace)

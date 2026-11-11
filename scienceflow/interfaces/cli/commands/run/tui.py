@@ -104,14 +104,15 @@ def build_tui_command(*, initial_command: str = "") -> click.Command:
 
     def build_interceptor(workspace):
         from scienceflow.interfaces.ui.long_research import LongResearchInteraction
+        from scienceflow.interfaces.ui.task_interaction import TaskInstructionInteraction
 
-        return LongResearchInteraction(
+        return TaskInstructionInteraction(LongResearchInteraction(
             Path(workspace),
             managed=True,
             multi_task=True,
             initial_command=initial_command,
             preparation_runtime_factory=runtime_factory,
-        )
+        ))
 
     host = create_cli(
         name="scienceflow-tui-host",
