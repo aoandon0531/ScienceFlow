@@ -52,6 +52,17 @@ python -m pytest -q tests/test_tui_project_instructions.py tests/test_inquirycra
 
 本阶段在 Qwen3-8B 上使用默认 TUI 系统提示词完成了演示。规则文件单独设置回答前缀，提问只要求计算 2 加 3 并遵守项目约定，实际回答为 `SF_STAGE1_AGENTS_OK 两加三等于五。`。
 
+本地验证记录如下。
+
+- 首轮相关回归加 `tests/test_plural_llm_config.py` 共 51 项通过。
+- 真实模型演示通过，会话与事件记录保存在 WSL 临时目录 `/tmp/sf-stage1-agents-w9pzl96x`。
+- 补充运行新增用例、聊天恢复、研究准备和 long research 交互测试时，末尾发生 WSL 连接超时，新命令返回 `Wsl/Service/HCS_E_CONNECTION_TIMEOUT`。该组检查没有完整结束，不能计为整组通过。已停止对应本地测试启动进程。
+- WSL 恢复后，可补跑下面的命令。
+
+```bash
+python -m pytest -q tests/test_tui_project_instructions.py tests/test_chat_runtime_resilience.py tests/test_research_preparation.py tests/test_long_research_interaction.py
+```
+
 ## Git 检查
 
 功能分支为 `feat/task-instructions`，`origin` 指向个人 fork，`upstream` 指向原仓库。提交包含加载逻辑、测试、CI 和本文。提交前检查暂存区内容以及 `git diff --check`。模型配置、连接密钥和会话产物保存在本地，暂存文件逐项指定。
